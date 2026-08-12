@@ -1,3 +1,5 @@
+mod theme;
+
 use eframe::egui;
 use std::path::PathBuf;
 use std::process::Command;
@@ -128,6 +130,13 @@ const APPS: &[AppDef] = &[
         launcher: Launcher::Binary("rust_marimo_portal"),
         preview: "rust_marimo_portal_dedicated_ipts",
     },
+    AppDef {
+        name: "System Monitor (btop)",
+        description: "View live CPU, memory, network, and disk usage with btop.",
+        repo: "portal_to_all_rust_applications",
+        launcher: Launcher::Script("launch_system_monitor_btop.sh"),
+        preview: "system_monitor_btop",
+    },
 ];
 
 impl AppDef {
@@ -247,6 +256,8 @@ impl eframe::App for App {
                                 egui::Image::from_texture(tex).max_height(LOGO_MAX_HEIGHT),
                             );
                         }
+                        ui.separator();
+                        theme::toggle_button(ui);
                     },
                 );
             });
@@ -327,12 +338,16 @@ impl eframe::App for App {
                                     egui::Layout::right_to_left(egui::Align::Center),
                                     |ui| {
                                         ui.add_enabled_ui(available, |ui| {
-                                            let mut button = egui::Button::new(
-                                                egui::RichText::new("Launch")
-                                                    .color(egui::Color32::WHITE),
-                                            )
-                                            .rounding(egui::Rounding::same(6.0))
-                                            .min_size(egui::vec2(90.0, 28.0));
+                                            // White text only over the green
+                                            // fill; the disabled button keeps
+                                            // the theme's own text color.
+                                            let mut text = egui::RichText::new("Launch");
+                                            if available {
+                                                text = text.color(egui::Color32::WHITE);
+                                            }
+                                            let mut button = egui::Button::new(text)
+                                                .rounding(egui::Rounding::same(6.0))
+                                                .min_size(egui::vec2(90.0, 28.0));
                                             if available {
                                                 button = button
                                                     .fill(egui::Color32::from_rgb(46, 160, 67));
@@ -372,6 +387,9 @@ fn main() -> eframe::Result<()> {
     eframe::run_native(
         "Neutron Imaging Application Portal",
         options,
-        Box::new(|_cc| Ok(Box::<App>::default())),
+        Box::new(|cc| {
+            cc.egui_ctx.set_visuals(theme::load().visuals());
+            Ok(Box::<App>::default())
+        }),
     )
 }
